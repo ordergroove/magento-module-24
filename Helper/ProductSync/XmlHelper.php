@@ -258,9 +258,9 @@ class XmlHelper
                 );
 
             if ($this->scopeConfig->getValue('ordergroove_subscription/general/enable_msi', ScopeInterface::SCOPE_WEBSITES, $websiteId)) {
-                $this->iterator->walk($collection->getSelect()->group('sku'), [[$this, 'processProductIntoXml']]);
+                $this->iterator->walk($collection->getSelect()->group('sku'), [[$this, 'processProductIntoXml']], ['websiteId' => $websiteId]);
             } else {
-                $this->iterator->walk($collection->getSelect(), [[$this, 'processProductIntoXml']]);
+                $this->iterator->walk($collection->getSelect(), [[$this, 'processProductIntoXml']], ['websiteId' => $websiteId]);
             }
 
             return $this->xml;
@@ -310,7 +310,7 @@ class XmlHelper
         } else {
             $productXml->addChild('in_stock', 0);
         }
-        $productXml->addChild('details_url', $this->generateProductUrlFromId($productData['entity_id']));
+        $productXml->addChild('details_url', $this->generateProductUrlFromId($productData['entity_id'],$args['websiteId']));
 
         $this->logger->info("Generated XML node for product: ".$productData['entity_id']);
     }
@@ -318,10 +318,16 @@ class XmlHelper
     /**
      * Generates default product url
      * @param $productId
+     * @param $websiteId
      * @return string
      */
-    public function generateProductUrlFromId($productId)
+    public function generateProductUrlFromId($productId, $websiteId)
     {
+        $stores = $this->storeManager->getWebsite($websiteId)->getStores();
+        foreach ($stores as $store) {
+            $baseUrl = $this->storeManager->getStore($store)->getBaseUrl(UrlInterface::URL_TYPE_WEB);
+            return str_replace("http://", "https://", $baseUrl) . 'catalog/product/view/id/' . $productId;
+        }
         $baseUrl = $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_WEB);
         return str_replace("http://", "https://", $baseUrl) . 'catalog/product/view/id/' . $productId;
     }
